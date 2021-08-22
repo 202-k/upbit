@@ -75,11 +75,11 @@ class Coin:
         f.close()
 
     def send_slack(self):
-        token = "xoxb-2403642842261-2419294353969-f0d2pIG7hrOVcSHUEfmXBqHK"
+        token = "xoxb-2403642842261-2419294353969-lzGW6PxiAy3RQDUsxA0G7LyI"
         if self.hold == True:
-            text = str(self.ticker) + ' 구매' + '\n 구매가격' + str(self.buy_price * (1 + self.fee))
+            text = str(self.ticker) + ' buy' + '\n price' + str(self.buy_price * (1 + self.fee))
         else:
-            text = str(self.ticker) + ' 판매' + '\n 판매가격' + str(self.buy_price * (1 + self.fee))
+            text = str(self.ticker) + ' sell' + '\n price' + str(self.buy_price * (1 + self.fee))
         requests.post("https://slack.com/api/chat.postMessage",
                       headers={
                           "Authorization": "Bearer " + token},
