@@ -69,9 +69,9 @@ class Coin:
         f.close()
 
 if __name__ == '__main__':
-    btc = Coin("KRW-BTC")
-    btc.load_tickers()
-    f = open(file="tickers")
+    # btc = Coin("KRW-BTC")
+    # btc.load_tickers()
+    f = open(file="tickers", mode='r')
     coins = []
     while True:
         line = f.readline()
@@ -85,6 +85,7 @@ if __name__ == '__main__':
         coin.append(Coin(coins[i]))
     while True:
         for i in range(len(coins)):
+            print(coins[i])
             # print(coin[i].ticker)
             coin[i].buy_coin()
             coin[i].sell_coin()
