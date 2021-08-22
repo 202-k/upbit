@@ -97,17 +97,14 @@ if __name__ == '__main__':
         if not line:
             break
         line = line.strip()
-        coins.append(line)
+        coins.append(Coin(line))
     f.close()
-    coin = []
-    for i in range(len(coins)):
-        coin.append(Coin(coins[i]))
+
     while True:
         for i in range(len(coins)):
-            print(coins[i])
             # print(coin[i].ticker)
-            coin[i].buy_coin()
-            coin[i].sell_coin()
+            coins[i].buy_coin()
+            coins[i].sell_coin()
             # time.sleep(0.01)
         # print(coin[0].ticker)
         # coin[0].buy_coin()
