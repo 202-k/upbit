@@ -2,6 +2,8 @@ import pyupbit
 import time
 import csv
 import datetime
+import requests
+from slacker import Slacker
 
 
 class Coin:
@@ -22,7 +24,7 @@ class Coin:
             self.hold = True
             self.buy_price = self.upbit.get_avg_buy_price(self.ticker)
             self.hold_amount = self.upbit.get_amount(self.ticker, contain_req=True)
-        if (self.hold == False) and (self.total_money >= self.money_per_coin * (1+self.fee)):
+        if (self.hold == False) and (self.total_money >= self.money_per_coin * (1 + self.fee)):
             data = pyupbit.get_ohlcv(ticker=self.ticker, interval="minute15", count=25)
             data['clo20'] = round(data['close'].rolling(window=20).mean(), 2)
             price = pyupbit.get_current_price(self.ticker)
@@ -33,19 +35,20 @@ class Coin:
                 self.buy_price = price
                 self.hold_amount = self.upbit.get_amount(self.ticker, contain_req=True)
                 self.record_trade()
+                self.send_slack()
             # else:
             #     print("No", data['clo20'][-1] * 0.98, price)
-
 
     def sell_coin(self):
         if self.hold == True:
             price = pyupbit.get_current_price(self.ticker)
             volume = self.upbit.get_balance(ticker=self.ticker)
-            if price >= self.buy_price * (1+self.profit_cut) or price <= self.buy_price * (1-self.loss_cut):
+            if price >= self.buy_price * (1 + self.profit_cut) or price <= self.buy_price * (1 - self.loss_cut):
                 self.upbit.sell_market_order(ticker=self.ticker, volume=volume)
                 self.sell_price = price
                 self.hold = False
                 self.record_trade()
+                self.send_slack()
                 self.buy_price = None
                 self.hold_amount = None
                 self.sell_price = None
@@ -55,10 +58,12 @@ class Coin:
         wr = csv.writer(f)
         if self.hold == True:
             print(self.ticker, 'buy record')
-            wr.writerow([datetime.datetime.now(), self.ticker, 'buy', self.buy_price*(1+self.fee), self.hold_amount])
+            wr.writerow(
+                [datetime.datetime.now(), self.ticker, 'buy', self.buy_price * (1 + self.fee), self.hold_amount])
         else:
             print(self.ticker, 'sell record')
-            wr.writerow([datetime.datetime.now(), self.ticker, 'sell', self.sell_price*(1-self.fee), self.hold_amount])
+            wr.writerow(
+                [datetime.datetime.now(), self.ticker, 'sell', self.sell_price * (1 - self.fee), self.hold_amount])
         f.close()
 
     def load_tickers(self):
@@ -67,6 +72,19 @@ class Coin:
         for k in range(len(tickers)):
             f.write(tickers[k] + '\n')
         f.close()
+
+    def send_slack(self):
+        token = "xoxb-2403642842261-2419294353969-euQ0uJbSrb2AhnkFmgk4Cr9Z"
+        if self.hold == True:
+            text = self.ticker + ' 구매' + '\n 구매가격' + self.buy_price * (1 + self.fee)
+        else:
+            text = self.ticker + ' 판매' + '\n 판매가격' + self.buy_price * (1 + self.fee)
+        requests.post("https://slack.com/api/chat.postMessage",
+                      headers={
+                          "Authorization": "Bearer " + token},
+                      data={"channel": "#coin", "text": text}
+                      )
+
 
 if __name__ == '__main__':
     # btc = Coin("KRW-BTC")
@@ -105,4 +123,3 @@ if __name__ == '__main__':
         # print(coin[4].ticker)
         # coin[4].buy_coin()
         # coin[4].sell_coin()
-
