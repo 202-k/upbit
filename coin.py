@@ -17,9 +17,10 @@ class Coin:
         self.fee = 0.0005
         self.profit_cut = 0.02
         self.loss_cut = 0.03
-        self.total_money = self.upbit.get_balance()
+
 
     def buy_coin(self):
+        self.total_money = self.upbit.get_balance()
         if self.upbit.get_balance(self.ticker):
             self.hold = True
             self.buy_price = self.upbit.get_avg_buy_price(self.ticker)
