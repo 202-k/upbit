@@ -61,9 +61,17 @@ class Coin:
             wr.writerow([datetime.datetime.now(), self.ticker, 'sell', self.sell_price*(1-self.fee), self.hold_amount])
         f.close()
 
+    def load_tickers(self):
+        f = open("tickers", 'w', newline='\n')
+        tickers = pyupbit.get_tickers("KRW")
+        for k in range(len(tickers)):
+            f.write(tickers[k] + '\n')
+        f.close()
 
 if __name__ == '__main__':
-    f = open(file="coins")
+    btc = Coin("KRW-BTC")
+    btc.load_tickers()
+    f = open(file="tickers")
     coins = []
     while True:
         line = f.readline()
@@ -72,11 +80,9 @@ if __name__ == '__main__':
         line = line.strip()
         coins.append(line)
     f.close()
-
     coin = []
     for i in range(len(coins)):
         coin.append(Coin(coins[i]))
-
     while True:
         for i in range(len(coins)):
             # print(coin[i].ticker)
