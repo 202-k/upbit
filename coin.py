@@ -12,7 +12,7 @@ class Coin:
         self._access = "5TjiFFJzxBFZSCaIcAURIK5uyP4jsKc1iAJCxuQ2"
         self._secret = "duPIHHQDno4SSIxjWPFk5uCR0v5JvtxjksAr9h8Z"
         self.upbit = pyupbit.Upbit(self._access, self._secret)
-        self.money_per_coin = 5000
+        self.money_per_coin = 5200
         self.hold = False
         self.fee = 0.0005
         self.profit_cut = 0.02
@@ -74,11 +74,11 @@ class Coin:
         f.close()
 
     def send_slack(self):
-        token = "xoxb-2403642842261-2419294353969-YyO0dhtKSLlW8qDhRMyOOKbN"
+        token = "xoxb-2403642842261-2419294353969-f0d2pIG7hrOVcSHUEfmXBqHK"
         if self.hold == True:
-            text = self.ticker + ' 구매' + '\n 구매가격' + self.buy_price * (1 + self.fee)
+            text = str(self.ticker) + ' 구매' + '\n 구매가격' + str(self.buy_price * (1 + self.fee))
         else:
-            text = self.ticker + ' 판매' + '\n 판매가격' + self.buy_price * (1 + self.fee)
+            text = str(self.ticker) + ' 판매' + '\n 판매가격' + str(self.buy_price * (1 + self.fee))
         requests.post("https://slack.com/api/chat.postMessage",
                       headers={
                           "Authorization": "Bearer " + token},
