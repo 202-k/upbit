@@ -78,7 +78,7 @@ class Coin:
         f.close()
 
     def send_slack(self):
-        token = "xoxb-2403642842261-2419294353969-lzGW6PxiAy3RQDUsxA0G7LyI"
+        token = "xoxb-2403642842261-2419294353969-sFibLSB8VC718rPSB2X833dG"
         if self.hold == True:
             text = str(self.ticker) + ' buy' + '\n price' + str(self.buy_price * (self.hold_amount))
         else:
