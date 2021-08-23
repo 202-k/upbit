@@ -34,7 +34,7 @@ class MyUpbit():
                 self.upbit.buy_limit_order(ticker=ticker.ticker, price=price, volume=volume)
                 ticker.hold = True
                 hold_amount = self.upbit.get_amount(ticker.ticker, contain_req=True)
-                ticker.send_slack(price=price, hold_amount=hold_amount)
+                ticker.send_slack(price=price, volume=volume)
 
     def sell_coin(self, ticker):
         if ticker.hold == True:
@@ -43,8 +43,7 @@ class MyUpbit():
             if price >= ticker.buy_price * (1 + self.profit_cut) or price <= ticker.buy_price * (1 - self.loss_cut):
                 self.upbit.sell_market_order(ticker=ticker.ticker, volume=volume)
                 ticker.hold = False
-                hold_amount = price * volume
-                ticker.send_slack(price=price, hold_amount=hold_amount)
+                ticker.send_slack(price=price, volume=volume)
                 ticker.buy_price = None
                 ticker.hold_amount = None
                 ticker.sell_price = None
@@ -78,12 +77,12 @@ class Coin:
             f.write(tickers[k] + '\n')
         f.close()
 
-    def send_slack(self, price, hold_amount):
+    def send_slack(self, price, volume):
         token = ""
         if self.hold == True:
-            text = str(self.ticker) + ' buy' + '\n price : ' + str(price * hold_amount)
+            text = str(self.ticker) + ' buy' + '\n price : ' + str(price * volume)
         else:
-            text = str(self.ticker) + ' sell' + '\n price : ' + str(price * hold_amount)
+            text = str(self.ticker) + ' sell' + '\n price : ' + str(price * volume)
         requests.post("https://slack.com/api/chat.postMessage",
                       headers={
                           "Authorization": "Bearer " + token},
@@ -105,6 +104,15 @@ if __name__ == '__main__':
     f.close()
     upbit = MyUpbit()
     while True:
+        m = datetime.datetime.now().minute
+        if m == 30:
+            token = ""
+            text = "It is working"
+            requests.post("https://slack.com/api/chat.postMessage",
+                          headers={
+                              "Authorization": "Bearer " + token},
+                          data={"channel": "#coin", "text": text}
+                          )
         for i in range(len(coins)):
             upbit.check_hold(coins[i])
             if coins[i].hold:
