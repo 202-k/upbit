@@ -102,10 +102,13 @@ if __name__ == '__main__':
         coins.append(Coin(line))
     f.close()
     upbit = MyUpbit()
-    k = 120
+    k = 35
+    for i in range(len(coins)):
+        upbit.check_hold(coins[i])
     while True:
-        if k == 120:
-            token = ""
+        print(k)
+        if k == 35:
+            token = "xoxb-2403642842261-2419294353969-D7XpbQgxklypm341mWdXXVxy"
             text = "It is working \nnow : " + str(datetime.datetime.now())
             requests.post("https://slack.com/api/chat.postMessage",
                           headers={
@@ -113,8 +116,7 @@ if __name__ == '__main__':
                           data={"channel": "#coin", "text": text}
                           )
             k = 0
-        for i in range(len(coins)):
-            upbit.check_hold(coins[i])
+
         for i in range(len(coins)):
             if coins[i].hold:
                 upbit.sell_coin(coins[i])
