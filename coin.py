@@ -33,6 +33,7 @@ class MyUpbit():
                 volume = self.money_per_coin/price
                 self.upbit.buy_limit_order(ticker=ticker.ticker, price=price, volume=volume)
                 ticker.hold = True
+                ticker.buy_price = price
                 ticker.send_slack(price=price, volume=volume)
 
     def sell_coin(self, ticker):
