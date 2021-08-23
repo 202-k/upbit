@@ -6,53 +6,56 @@ import requests
 from slacker import Slacker
 
 
-class Coin:
-    def __init__(self, ticker):
-        self.ticker = ticker
+class MyUpbit():
+    def __init__(self):
         self._access = "5TjiFFJzxBFZSCaIcAURIK5uyP4jsKc1iAJCxuQ2"
         self._secret = "duPIHHQDno4SSIxjWPFk5uCR0v5JvtxjksAr9h8Z"
         self.upbit = pyupbit.Upbit(self._access, self._secret)
-        self.money_per_coin = 5200
-        self.hold = False
+        self.money_per_coin = 5205
         self.fee = 0.0005
         self.profit_cut = 0.02
         self.loss_cut = 0.03
 
+    def check_hold(self, ticker):
+        if self.upbit.get_balance(ticker.ticker):
+            ticker.hold = True
+            ticker.buy_price = self.upbit.get_avg_buy_price(ticker.ticker)
+            ticker.hold_amount = self.upbit.get_amount(ticker.ticker, contain_req=True)
 
-    def buy_coin(self):
+    def buy_coin(self, ticker):
         self.total_money = self.upbit.get_balance()
-        if self.upbit.get_balance(self.ticker):
-            self.hold = True
-            self.buy_price = self.upbit.get_avg_buy_price(self.ticker)
-            self.hold_amount = self.upbit.get_amount(self.ticker, contain_req=True)
-        if (self.hold == False) and (self.total_money >= self.money_per_coin * (1 + self.fee)):
-            data = pyupbit.get_ohlcv(ticker=self.ticker, interval="minute15", count=25)
+        if (ticker.hold == False) and (self.total_money >= self.money_per_coin * (1 + self.fee)):
+            data = pyupbit.get_ohlcv(ticker=ticker.ticker, interval="minute15", count=25)
             data['clo20'] = round(data['close'].rolling(window=20).mean(), 2)
-            price = pyupbit.get_current_price(self.ticker)
+            price = pyupbit.get_current_price(ticker.ticker)
             if price <= data['clo20'][-1] * 0.98:
                 print("!!!!!!!!!!buy!!!!!!!!!", data['clo20'][-1] * 0.98, price)
-                self.upbit.buy_market_order(ticker=self.ticker, price=self.money_per_coin)
-                self.hold = True
-                self.buy_price = price
-                self.hold_amount = self.upbit.get_amount(self.ticker, contain_req=True)
-                self.record_trade()
-                self.send_slack()
-            # else:
-            #     print("No", data['clo20'][-1] * 0.98, price)
+                volume = self.money_per_coin/price
+                self.upbit.buy_limit_order(ticker=ticker.ticker, price=price, volume=volume)
+                ticker.hold = True
+                ticker.buy_price = price
+                ticker.hold_amount = self.upbit.get_amount(ticker.ticker, contain_req=True)
+                ticker.record_trade()
+                ticker.send_slack()
 
-    def sell_coin(self):
-        if self.hold == True:
-            price = pyupbit.get_current_price(self.ticker)
-            volume = self.upbit.get_balance(ticker=self.ticker)
-            if price >= self.buy_price * (1 + self.profit_cut) or price <= self.buy_price * (1 - self.loss_cut):
-                self.upbit.sell_market_order(ticker=self.ticker, volume=volume)
-                self.sell_price = price
-                self.hold = False
-                self.record_trade()
-                self.send_slack()
-                self.buy_price = None
-                self.hold_amount = None
-                self.sell_price = None
+    def sell_coin(self, ticker):
+        if ticker.hold == True:
+            price = pyupbit.get_current_price(ticker.ticker)
+            volume = self.upbit.get_balance(ticker=ticker.ticker)
+            if price >= ticker.buy_price * (1 + self.profit_cut) or price <= ticker.buy_price * (1 - self.loss_cut):
+                self.upbit.sell_market_order(ticker=ticker.ticker, volume=volume)
+                ticker.sell_price = price
+                ticker.hold = False
+                ticker.record_trade()
+                ticker.send_slack()
+                ticker.buy_price = None
+                ticker.hold_amount = None
+                ticker.sell_price = None
+class Coin:
+    def __init__(self, ticker):
+        self.ticker = ticker
+        self.hold = False
+
 
     def record_trade(self):
         f = open(self.ticker + ".csv", 'a', newline="\n")
@@ -77,9 +80,9 @@ class Coin:
     def send_slack(self):
         token = "xoxb-2403642842261-2419294353969-lzGW6PxiAy3RQDUsxA0G7LyI"
         if self.hold == True:
-            text = str(self.ticker) + ' buy' + '\n price' + str(self.buy_price * (1 + self.fee))
+            text = str(self.ticker) + ' buy' + '\n price' + str(self.buy_price * (self.hold_amount))
         else:
-            text = str(self.ticker) + ' sell' + '\n price' + str(self.buy_price * (1 + self.fee))
+            text = str(self.ticker) + ' sell' + '\n price' + str(self.buy_price * (self.hold_amount))
         requests.post("https://slack.com/api/chat.postMessage",
                       headers={
                           "Authorization": "Bearer " + token},
@@ -99,25 +102,11 @@ if __name__ == '__main__':
         line = line.strip()
         coins.append(Coin(line))
     f.close()
-
+    upbit = MyUpbit()
     while True:
         for i in range(len(coins)):
-            # print(coin[i].ticker)
-            coins[i].buy_coin()
-            coins[i].sell_coin()
-            # time.sleep(0.01)
-        # print(coin[0].ticker)
-        # coin[0].buy_coin()
-        # coin[0].sell_coin()
-        # print(coin[1].ticker)
-        # coin[1].buy_coin()
-        # coin[1].sell_coin()
-        # print(coin[2].ticker)
-        # coin[2].buy_coin()
-        # coin[2].sell_coin()
-        # print(coin[3].ticker)
-        # coin[3].buy_coin()
-        # coin[3].sell_coin()
-        # print(coin[4].ticker)
-        # coin[4].buy_coin()
-        # coin[4].sell_coin()
+            upbit.check_hold(coins[i])
+            if coins[i].hold:
+                upbit.sell_coin(coins[i])
+            else:
+                upbit.buy_coin(coins[i])
