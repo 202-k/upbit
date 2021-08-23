@@ -105,7 +105,8 @@ if __name__ == '__main__':
     upbit = MyUpbit()
     while True:
         m = datetime.datetime.now().minute
-        if m == 30:
+        if m == 30 and send == False:
+            send = True
             token = ""
             text = "It is working"
             requests.post("https://slack.com/api/chat.postMessage",
@@ -113,6 +114,8 @@ if __name__ == '__main__':
                               "Authorization": "Bearer " + token},
                           data={"channel": "#coin", "text": text}
                           )
+        else:
+            send = False
         for i in range(len(coins)):
             upbit.check_hold(coins[i])
             if coins[i].hold:
