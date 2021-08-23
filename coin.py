@@ -20,7 +20,7 @@ class MyUpbit():
         if self.upbit.get_balance(ticker.ticker):
             ticker.hold = True
             ticker.buy_price = self.upbit.get_avg_buy_price(ticker.ticker)
-            ticker.hold_amount = self.upbit.get_amount(ticker.ticker, contain_req=True)
+            ticker.hold_amount = self.upbit.get_amount(ticker.ticker)
 
     def buy_coin(self, ticker):
         self.total_money = self.upbit.get_balance()
@@ -33,7 +33,6 @@ class MyUpbit():
                 volume = self.money_per_coin/price
                 self.upbit.buy_limit_order(ticker=ticker.ticker, price=price, volume=volume)
                 ticker.hold = True
-                hold_amount = self.upbit.get_amount(ticker.ticker, contain_req=True)
                 ticker.send_slack(price=price, volume=volume)
 
     def sell_coin(self, ticker):
@@ -41,12 +40,11 @@ class MyUpbit():
             price = pyupbit.get_current_price(ticker.ticker)
             volume = self.upbit.get_balance(ticker=ticker.ticker)
             if price >= ticker.buy_price * (1 + self.profit_cut) or price <= ticker.buy_price * (1 - self.loss_cut):
-                self.upbit.sell_market_order(ticker=ticker.ticker, volume=volume)
+                self.upbit.sell_limit_order(ticker=ticker.ticker, price=price, volume=volume)
                 ticker.hold = False
                 ticker.send_slack(price=price, volume=volume)
                 ticker.buy_price = None
                 ticker.hold_amount = None
-                ticker.sell_price = None
 
 
 class Coin:
@@ -103,23 +101,23 @@ if __name__ == '__main__':
         coins.append(Coin(line))
     f.close()
     upbit = MyUpbit()
+    k = 120
     while True:
-        m = datetime.datetime.now().minute
-        if m == 30 and send == False:
-            send = True
+        if k == 120:
             token = ""
-            text = "It is working"
+            text = "It is working \nnow : " + str(datetime.datetime.now())
             requests.post("https://slack.com/api/chat.postMessage",
                           headers={
                               "Authorization": "Bearer " + token},
                           data={"channel": "#coin", "text": text}
                           )
-        else:
-            send = False
+            k = 0
         for i in range(len(coins)):
             upbit.check_hold(coins[i])
+        for i in range(len(coins)):
             if coins[i].hold:
                 upbit.sell_coin(coins[i])
             else:
                 upbit.buy_coin(coins[i])
+        k += 1
 
