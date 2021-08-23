@@ -111,3 +111,4 @@ if __name__ == '__main__':
                 upbit.sell_coin(coins[i])
             else:
                 upbit.buy_coin(coins[i])
+
