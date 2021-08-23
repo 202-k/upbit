@@ -108,7 +108,7 @@ if __name__ == '__main__':
     while True:
         print(k)
         if k == 35:
-            token = "xoxb-2403642842261-2419294353969-D7XpbQgxklypm341mWdXXVxy"
+            token = ""
             text = "It is working \nnow : " + str(datetime.datetime.now())
             requests.post("https://slack.com/api/chat.postMessage",
                           headers={
