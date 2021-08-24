@@ -21,6 +21,8 @@ class MyUpbit():
             ticker.hold = True
             ticker.buy_price = self.upbit.get_avg_buy_price(ticker.ticker)
             ticker.hold_amount = self.upbit.get_amount(ticker.ticker)
+        else:
+            ticker.hold = False
 
     def buy_coin(self, ticker):
         self.total_money = self.upbit.get_balance()
@@ -28,24 +30,41 @@ class MyUpbit():
             data = pyupbit.get_ohlcv(ticker=ticker.ticker, interval="minute15", count=25)
             data['clo20'] = round(data['close'].rolling(window=20).mean(), 2)
             price = pyupbit.get_current_price(ticker.ticker)
-            if price <= data['clo20'][-1] * 0.975:
+            if price <= data['clo20'][-1] * 0.975 and not ticker.under_percent:
                 #print("!!!!!!!!!!buy!!!!!!!!!", data['clo20'][-1] * 0.975, price)
                 volume = self.money_per_coin/price
                 self.upbit.buy_limit_order(ticker=ticker.ticker, price=price, volume=volume)
                 ticker.hold = True
                 ticker.buy_price = price
                 ticker.send_slack(price=price, volume=volume)
+                ticker.under_percent = True
+            elif ticker.under_percent and price >= data['clo20'][-1] * 0.97:
+                volume = self.money_per_coin / price
+                self.upbit.buy_limit_order(ticker=ticker.ticker, price=price, volume=volume)
+                ticker.hold = True
+                ticker.buy_price = price
+                ticker.send_slack(price=price, volume=volume)
+                ticker.under_percent = False
 
     def sell_coin(self, ticker):
         if ticker.hold == True:
             price = pyupbit.get_current_price(ticker.ticker)
             volume = self.upbit.get_balance(ticker=ticker.ticker)
-            if price >= ticker.buy_price * (1 + self.profit_cut) or price <= ticker.buy_price * (1 - self.loss_cut):
+            if price >= ticker.buy_price * (1 + self.profit_cut):
                 self.upbit.sell_limit_order(ticker=ticker.ticker, price=price, volume=volume)
                 ticker.hold = False
                 ticker.send_slack(price=price, volume=volume)
                 ticker.buy_price = None
                 ticker.hold_amount = None
+                ticker.under_percent = False
+            elif price <= ticker.buy_price * (1 - self.loss_cut):
+                self.upbit.sell_limit_order(ticker=ticker.ticker, price=price, volume=volume)
+                ticker.hold = False
+                ticker.send_slack(price=price, volume=volume)
+                ticker.buy_price = None
+                ticker.hold_amount = None
+                ticker.under_percent = True
+
 
 
 class Coin:
@@ -54,6 +73,7 @@ class Coin:
         self.hold_amount = None
         self.ticker = ticker
         self.hold = False
+        self.under_percent = False
 
 
     def record_trade(self, price, hold_amount):
@@ -103,8 +123,7 @@ if __name__ == '__main__':
     f.close()
     upbit = MyUpbit()
     k = 35
-    for i in range(len(coins)):
-        upbit.check_hold(coins[i])
+
     while True:
         print(k)
         if k == 35:
@@ -118,6 +137,7 @@ if __name__ == '__main__':
             k = 0
 
         for i in range(len(coins)):
+            upbit.check_hold(coins[i])
             if coins[i].hold:
                 upbit.sell_coin(coins[i])
             else:
